@@ -39,14 +39,24 @@ class BooksSpider(scrapy.Spider):
             yield response.follow(next_page, callback=self.parse)
 
     def parse_book_details(self, response: Response) -> None:
+        try:
+            amount_in_stock = int(
+                response.css("th:contains('Availability') + td::text")
+                .get()
+                .split("(")[-1]
+                .split(" ")[0]
+            )
+        except (AttributeError, IndexError, ValueError):
+            amount_in_stock = 0
+
         yield {
             "title": response.meta["title"],
             "price": response.meta["price"],
-            "amount_in_stock": int(response.css(
-                "th:contains('Availability') + td::text"
-            ).get().split("(")[-1].split(" ")[0]),
+            "amount_in_stock": amount_in_stock,
             "rating": response.meta["rating"],
             "description": response.css(
                 "#product_description + p::text").get(),
-            "upc": response.css("th:contains('UPC') + td::text").get()
+            "upc": response.css("th:contains('UPC') + td::text").get(
+                default="No description available"
+            )
         }
